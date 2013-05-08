@@ -24,7 +24,7 @@
 
 require_once 'autoloader.php';
 
-class TestApi extends Dioxide\App
+class TestApi extends \Dioxide\App
 {
 
     private $options = array(
@@ -40,7 +40,7 @@ class TestApi extends Dioxide\App
         parent::__construct($namespaces, $this->options, $cache);
 
         // set our own custom content type (must be a json type string, ending in 'json')
-        $this->setContentType('application/vnd.sappy+json');
+        $this->setContentType('application/vnd.dioxide+json');
 
         $this->setExtendables();
         $this->setCallbacks();

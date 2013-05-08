@@ -25,7 +25,6 @@
 namespace Dioxide\Transport;
 
 use Dioxide\Exceptions\HTTPException;
-use Dioxide\App;
 
 /**
  * JSON class
