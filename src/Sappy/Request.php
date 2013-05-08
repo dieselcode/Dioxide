@@ -344,15 +344,18 @@ abstract class Request
     /**
      * Get authorization data via HTTP headers
      *
+     * @param  string $forceClass Class to force inject to test against
      * @return object
      * @throws HTTPException
      */
-    public static function getAuthData()
+    public static function getAuthData($forceClass = null)
     {
         $auth = static::getHeader('Authorization');
 
         if (!empty($auth)) {
             list($type, $data) = explode(' ', $auth, 2);
+
+            $type = !is_null($forceClass) ? $forceClass : ucfirst($type);
 
             if (in_array($type, static::$_allowedAuth)) {
                 $classStr = static::$_authLocation . $type;

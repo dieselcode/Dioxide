@@ -42,7 +42,7 @@ class Response
 
     public  $cache          = null;
 
-    private $_message       = '';
+    private $_content       = '';
     private $_headers       = [];
     private $_httpCode      = 200;
     private $_noBody        = ['head', 'options'];
@@ -139,6 +139,16 @@ class Response
     }
 
     /**
+     * Set the content for the response
+     *
+     * @param array $content
+     */
+    public function content(array $content = [])
+    {
+        $this->_content = $content;
+    }
+
+    /**
      * Get the added headers for the response
      *
      * @return array
@@ -153,23 +163,23 @@ class Response
      *
      * @return string
      */
-    public function getMessage()
+    public function getContent()
     {
-        return $this->_message;
+        return $this->_content;
     }
 
     /**
      * Write status code and data to a buffer for an HTTP packet
      *
      * @param  int    $httpCode
-     * @param  array  $message
+     * @param  array  $content
      * @return object
      */
-    public function write($httpCode, array $message = [])
+    public function write($httpCode, array $content = [])
     {
         if (array_key_exists($httpCode, $this->_validCodes)) {
             $this->_httpCode = $httpCode;
-            $this->_message = $message;
+            $this->_content  = $content;
         }
 
         return $this;
@@ -185,7 +195,9 @@ class Response
     public function send($addedHeaders = [])
     {
 
-        $data = JSON::encode($this->_message);
+        $data = JSON::encode($this->_content);
+        $reqMethod = strtolower(App::getRequestMethod());
+
         $primaryHeaders = [];
 
         // this is the only place we need this function
@@ -198,7 +210,7 @@ class Response
         };
 
         // if the content has no body, switch the http code to a 204 No Content status
-        $statusCode = (!in_array(strtolower(App::getRequestMethod()), $this->_noBody)) ? $this->_httpCode : 204;
+        $statusCode = (!in_array($reqMethod, $this->_noBody)) ? $this->_httpCode : 204;
 
         http_response_code($statusCode);
 
@@ -209,11 +221,11 @@ class Response
                 // no cache, or expired... set it.
                 if ($cache === false) {
                     $this->cache->set(App::getRealRequestPath(), $data);
-                    $lastMod = time();
+                    $lastMod     = time();
                     $cacheStatus = 'new-cache';
                 } else {
-                    $data = $cache['content'];
-                    $lastMod = $cache['filemtime'];
+                    $data        = $cache['content'];
+                    $lastMod     = $cache['filemtime'];
                     $cacheStatus = 'cached';
                 }
 
@@ -227,10 +239,10 @@ class Response
             $primaryHeaders['ETag']          = $this->cache->getETag(APP::getRealRequestPath());
         }
 
-        $primaryHeaders['Status']           = sprintf('%d %s', $statusCode, $this->_validCodes[$statusCode]);
-        $primaryHeaders['X-Powered-By']     = App::getSignature();
+        $primaryHeaders['Status']       = sprintf('%d %s', $statusCode, $this->_validCodes[$statusCode]);
+        $primaryHeaders['X-Powered-By'] = App::getSignature();
 
-        if (!in_array(strtolower(App::getRequestMethod()), $this->_noBody) || (App::hasCache() && $this->_httpCode != 304)) {
+        if (!in_array($reqMethod, $this->_noBody) || (App::hasCache() && $this->_httpCode != 304)) {
             $primaryHeaders['Content-Type']   = JSON::getContentType();
             $primaryHeaders['Content-Length'] = strlen($data);
             $primaryHeaders['Content-MD5']    = base64_encode(md5($data, true));
@@ -241,7 +253,7 @@ class Response
         $processHeaders($addedHeaders);
         $processHeaders($this->_headers);
 
-        if (!in_array(strtolower(App::getRequestMethod()), $this->_noBody) || $this->_httpCode != 304) {
+        if (!in_array($reqMethod, $this->_noBody) || $this->_httpCode != 304) {
             if (App::getOption('use_output_compression') && extension_loaded('zlib')) {
                 // ob_gzhandler sets the following headers for us:
                 //  - Content-Encoding

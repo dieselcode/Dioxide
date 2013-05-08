@@ -24,8 +24,10 @@
 
 namespace Dioxide;
 
-// RFC1123 date format
 const DATE_RFC1123 = 'D, d M Y H:i:s \G\M\T';
+
+const AUTH_BASIC   = 'Basic';
+const AUTH_BEARER  = 'Bearer';
 
 use Dioxide\Exceptions\HTTPException;
 
@@ -126,14 +128,29 @@ class App extends Request
         if (!empty($this->_currRoute)) {
             if (in_array($method, $this->_methods)) {
                 $this->_currMethod = $method;
-                $requireAuth = isset($args[1]) ? $args[1] : false;
-                $this->getCurrentRoute()->setMethodCallback($method, $args[0]->bindTo($this, $this), $requireAuth);
-                return true;
+                $this->getCurrentRoute()->setMethodCallback($method, $args[0]->bindTo($this, $this));
+                return $this;
+            }
+        }
+        // if we get here, trigger a PHP error
+        trigger_error(sprintf('Method "%s" not found in class "%s"', $method, __CLASS__), E_USER_WARNING);
+    }
+
+    /**
+     * Add auth type to a specified method (get, post, etc.)
+     *
+     * @param  null|string $authType
+     * @return object
+     */
+    public function auth($authType = null)
+    {
+        if (!empty($this->_currMethod)) {
+            if (defined($authType)) {
+                $this->getCurrentRoute()->setMethodAuth($this->_currMethod, $authType);
             }
         }
 
-        // if we get here, trigger a PHP error
-        trigger_error(sprintf('Method "%s" not found in class "%s"', $method, __CLASS__), E_USER_WARNING);
+        return $this;
     }
 
     /**
@@ -351,12 +368,12 @@ class App extends Request
                 $params   = new Params($route->getParams($this));
 
                 // see if our method callback requires authorization
-                if (!is_null($callback) && $callback['requireAuth'] !== false) {
+                if (!is_null($callback) && $callback['auth'] !== null) {
 
                     $authData = false;
 
                     try {
-                        $authData = $this->getAuthData();
+                        $authData = $this->getAuthData($callback['auth']);
                     } catch (HTTPException $e) {
                         $this->emit('error', [$e]);
                     }
@@ -524,10 +541,9 @@ class App extends Request
         };
 
         if (is_array($cache_file)) {
-
             if (!is_null($if_modified_since) || !is_null($if_unmodified_since)) {
                 if (($cache_file['filemtime'] <= $if_modified_since) ||
-                    ($cache_file['filemtime'] < $if_unmodified_since)) {
+                    ($cache_file['filemtime'] <= $if_unmodified_since)) {
                     $sendNotModified();
                 }
             }
@@ -537,10 +553,7 @@ class App extends Request
                     $sendNotModified();
                 }
             }
-
         }
-
-        // cache doesn't exist or is expired, just let execution continue
     }
 
     /**

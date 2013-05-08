@@ -182,13 +182,25 @@ class Route
      * @param  bool     $requireAuth
      * @return void
      */
-    public function setMethodCallback($method, \Closure $callback, $requireAuth = false)
+    public function setMethodCallback($method, \Closure $callback)
     {
         $this->_methodCallbacks[$method] = [
-            'method'      => $method,
-            'callback'    => $callback,
-            'requireAuth' => $requireAuth
+            'method'   => $method,
+            'callback' => $callback,
+            'auth'     => null
         ];
+    }
+
+    /**
+     * Set the authorization needed for the method
+     *
+     * @param string $method
+     * @param string $authType
+     * @see \Dioxide\AUTH_BASIC and \Dioxide\AUTH_BEARER
+     */
+    public function setMethodAuth($method, $authType)
+    {
+        $this->_methodCallbacks[$method]['auth'] = $authType;
     }
 
     /**

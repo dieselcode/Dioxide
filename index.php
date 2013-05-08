@@ -88,8 +88,9 @@ class TestApi extends Dioxide\App
                 $response->write(200, $array);
 
                 return $response;
-            }, true);   // require auth to use this method
+            })->auth(\Dioxide\AUTH_BASIC);   // require basic auth to use this method
         });
+
 
         // send the request headers back to the user
         $this->route('/headers', function() {
@@ -126,7 +127,7 @@ class TestApi extends Dioxide\App
 
     }
 
-    // testing heirarchy
+    // testing hierarchy
     public function testParamRoutes()
     {
         // first param is required, second is optional
